@@ -1,18 +1,21 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Bind resources to your worker in `wrangler.jsonc`. After adding bindings, a type definition for the
- * `Env` object can be regenerated with `npm run cf-typegen`.
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
-
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		return new Response('Hello World!');
+	  // Parse the user's question from the query string, e.g. ?q=What is a mutex?
+	  const url = new URL(request.url);
+	  const question = url.searchParams.get("q") || "Hello! What can you do?";
+  
+	  // Call Cloudflare Workers AI (Llama 3.3 8B Instruct)
+	  const aiResponse = await env.AI.run("@cf/meta/llama-3-8b-instruct", {
+		messages: [
+		  { role: "system", content: "You are a helpful assistant for computer science students." },
+		  { role: "user", content: question },
+		],
+	  });	  
+  
+	  // Return the model’s text as JSON
+	  return new Response(JSON.stringify({ question, answer: aiResponse }), {
+		headers: { "Content-Type": "application/json" },
+	  });
 	},
-} satisfies ExportedHandler<Env>;
+  } satisfies ExportedHandler<Env>;
+  
