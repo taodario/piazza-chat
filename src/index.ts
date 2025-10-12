@@ -14,6 +14,12 @@ interface PiazzaPost {
 	};
 }
 
+interface Env {
+	piazza_data: KVNamespace; // KV binding
+	AI: Ai;                   // Workers AI binding
+  }
+  
+
 // --- Helpers ---
 
 function stripHtml(html: string = ""): string {
@@ -297,11 +303,9 @@ function frontendHtml(): string {
   
 	<div class="samples">
 	  <h3>Try asking:</h3>
-	  <button class="sample">Why does thread_wait return -1?</button>
-	  <button class="sample">How do I fix a segmentation fault in thread_create?</button>
-	  <button class="sample">Where can I find the Crowdmark link for Midterm 1?</button>
-	  <button class="sample">Was the midterm curved?</button>
-	  <button class="sample">How to practice for the long-answer questions?</button>
+	  <button class="sample">Was Midterm 1 curved?</button>
+	  <button class="sample">Tell me about Task 2</button>
+	  <button class="sample">Is survey 2 released?</button>
 	</div>
   
 	<div id="output"></div>
