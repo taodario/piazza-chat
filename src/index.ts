@@ -228,102 +228,132 @@ function json(data: any, status = 200) {
 // --- HTML Frontend ---
 function frontendHtml(): string {
 	return `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>Piazza AI Assistant</title>
-<style>
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <title>Piazza AI Assistant</title>
+  <style>
 	body { font-family: system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
 	h1 { color: #333; }
-	form { margin-bottom: 1.5rem; }
+	form { margin-bottom: 1rem; }
 	input[type="text"] {
-		width: 70%;
-		padding: 0.6rem;
-		border-radius: 6px;
-		border: 1px solid #ccc;
+	  width: 70%;
+	  padding: 0.6rem;
+	  border-radius: 6px;
+	  border: 1px solid #ccc;
 	}
 	button {
-		padding: 0.6rem 1rem;
-		background: #0070f3;
-		color: white;
-		border: none;
-		border-radius: 6px;
-		cursor: pointer;
+	  padding: 0.6rem 1rem;
+	  background: #0070f3;
+	  color: white;
+	  border: none;
+	  border-radius: 6px;
+	  cursor: pointer;
 	}
 	button:hover { background: #0059c1; }
+	.samples { margin: 0.5rem 0 1.25rem; }
+	.samples h3 { font-size: 0.95rem; color: #444; margin: 0 0 0.4rem; }
+	.samples button.sample {
+	  margin: 0.2rem 0.2rem 0.2rem 0;
+	  padding: 0.4rem 0.7rem;
+	  font-size: 0.9rem;
+	  background: #f5f5f5;
+	  color: #333;
+	  border: 1px solid #ddd;
+	  border-radius: 6px;
+	  cursor: pointer;
+	}
+	.samples button.sample:hover { background: #eee; }
 	pre {
-		background: #f7f7f7;
-		padding: 1rem;
-		border-radius: 8px;
-		white-space: pre-wrap;
+	  background: #f7f7f7;
+	  padding: 1rem;
+	  border-radius: 8px;
+	  white-space: pre-wrap;
 	}
 	details {
-		margin-top: 1rem;
-		background: #fafafa;
-		padding: 0.6rem 1rem;
-		border-radius: 6px;
+	  margin-top: 1rem;
+	  background: #fafafa;
+	  padding: 0.6rem 1rem;
+	  border-radius: 6px;
 	}
-	summary {
-		cursor: pointer;
-		font-weight: 600;
-		color: #333;
-	}
+	summary { cursor: pointer; font-weight: 600; color: #333; }
 	.post {
-		margin-top: 0.5rem;
-		padding: 0.5rem;
-		border-left: 3px solid #0070f3;
-		background: #fff;
+	  margin-top: 0.5rem;
+	  padding: 0.5rem;
+	  border-left: 3px solid #0070f3;
+	  background: #fff;
 	}
-	.tags {
-		color: #666;
-		font-size: 0.9em;
-	}
-</style>
-</head>
-<body>
-<h1>Piazza AI Assistant</h1>
-<form id="ask-form">
-	<input type="text" id="q" name="q" placeholder="Ask about thread_wait..." required />
-	<button type="submit">Ask</button>
-</form>
-<div id="output"></div>
-
-<script>
-const form = document.getElementById('ask-form');
-const out = document.getElementById('output');
-
-form.addEventListener('submit', async (e) => {
-	e.preventDefault();
-	const q = document.getElementById('q').value;
-	out.innerHTML = '<p><em>Thinking...</em></p>';
-	const res = await fetch('/ask?q=' + encodeURIComponent(q));
-	const data = await res.json();
-
-	if (data.error) {
-		out.innerHTML = '<p style="color:red">' + data.error + '</p>';
-		return;
-	}
-
-	let html = '<h3>Answer:</h3><pre>' + data.answer + '</pre>';
-
-	if (data.used_posts && data.used_posts.length) {
-		html += '<details open><summary>Referenced Piazza Posts (' + data.used_posts.length + ')</summary>';
-		for (const p of data.used_posts) {
+	.tags { color: #666; font-size: 0.9em; }
+  </style>
+  </head>
+  <body>
+	<h1>Piazza AI Assistant</h1>
+  
+	<form id="ask-form">
+	  <input type="text" id="q" name="q" placeholder="Ask about thread_wait..." required />
+	  <button type="submit">Ask</button>
+	</form>
+  
+	<div class="samples">
+	  <h3>Try asking:</h3>
+	  <button class="sample">Why does thread_wait return -1?</button>
+	  <button class="sample">How do I fix a segmentation fault in thread_create?</button>
+	  <button class="sample">Where can I find the Crowdmark link for Midterm 1?</button>
+	  <button class="sample">Was the midterm curved?</button>
+	  <button class="sample">How to practice for the long-answer questions?</button>
+	</div>
+  
+	<div id="output"></div>
+  
+	<script>
+	  const form = document.getElementById('ask-form');
+	  const out = document.getElementById('output');
+	  const input = document.getElementById('q');
+  
+	  form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		runQuery(input.value);
+	  });
+  
+	  document.querySelectorAll('.sample').forEach(btn => {
+		btn.addEventListener('click', () => {
+		  const q = btn.textContent;
+		  input.value = q;
+		  runQuery(q);
+		});
+	  });
+  
+	  async function runQuery(q) {
+		out.innerHTML = '<p><em>Thinking...</em></p>';
+		const res = await fetch('/ask?q=' + encodeURIComponent(q));
+		const data = await res.json();
+  
+		if (data.error) {
+		  out.innerHTML = '<p style="color:red">' + data.error + '</p>';
+		  return;
+		}
+  
+		let html = '<h3>Answer:</h3><pre>' + data.answer + '</pre>';
+  
+		if (data.used_posts && data.used_posts.length) {
+		  html += '<details open><summary>Referenced Piazza Posts (' + data.used_posts.length + ')</summary>';
+		  for (const p of data.used_posts) {
 			html += '<div class="post">';
 			html += '<strong>' + p.subject + '</strong><br>';
 			html += '<div class="tags">' + (p.tags?.join(', ') || '-') + ' | ' + new Date(p.created).toLocaleString() + '</div>';
 			html += '<pre>' + p.content + '</pre>';
 			html += '<em>ID:</em> ' + p.id;
 			html += '</div>';
+		  }
+		  html += '</details>';
 		}
-		html += '</details>';
-	}
-
-	out.innerHTML = html;
-});
-</script>
-</body>
-</html>
-`;
-}
+  
+		out.innerHTML = html;
+	  }
+	</script>
+  </body>
+  </html>
+	`;
+  }
+  
