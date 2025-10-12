@@ -12,7 +12,14 @@
 	},
 	"ai": {
 		"binding": "AI"
-	}
+	},
+	"kv_namespaces": [
+		{
+			"binding": "piazza_data",
+			"id": "26e1dfc7dbd04baa8b289807ec16fca3",
+			"remote": true
+		}
+	]
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
