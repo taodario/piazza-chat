@@ -102,6 +102,47 @@ function pickTop(posts: PiazzaPost[], q: string, k = 10): PiazzaPost[] {
 		.map((x) => x.p);
 }
 
+// --- Extract AI response from various formats ---
+
+async function extractAIResponse(result: any): Promise<string> {
+	// Handle string response
+	if (typeof result === "string") {
+		return result;
+	}
+
+	// Handle object with response property
+	if (result.response) {
+		if (typeof result.response === "string") {
+			return result.response;
+		}
+		// Handle ReadableStream
+		if (typeof result.response === "object" && result.response.getReader) {
+			const reader = result.response.getReader();
+			const decoder = new TextDecoder();
+			let text = "";
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				text += decoder.decode(value, { stream: true });
+			}
+			return text;
+		}
+	}
+
+	// Handle alternative text property
+	if (result.text) {
+		return result.text;
+	}
+
+	// Handle nested result
+	if (result.result?.response) {
+		return result.result.response;
+	}
+
+	// Fallback: return stringified result for debugging
+	return JSON.stringify(result);
+}
+
 // --- Fetch all posts from KV ---
 
 async function getAll(env: Env): Promise<PiazzaPost[]> {
@@ -180,9 +221,12 @@ export default {
 
 				const systemPrompt = [
 					"You are a helpful TA Assistant for CSC209/CSC369/CSC373.",
-					"Answer the student's question strictly from the provided Piazza context.",
-					"If the context is insufficient, say so briefly and suggest what to search next.",
-					"Prefer concise, actionable answers with bullet points and cite post ids like (see id: XXXXX).",
+					"Your role is to answer student questions using ONLY the provided Piazza context below.",
+					"IMPORTANT: Do not use external knowledge. If the context doesn't contain the answer, say 'I don't have enough information in the Piazza posts to answer this.'",
+					"Provide clear, concise answers with bullet points when appropriate.",
+					"Always cite specific post IDs using the format: (see post id: XXXXX).",
+					"If multiple posts are relevant, reference all of them.",
+					"Keep your response focused and actionable.",
 				].join(" ");
 
 				const model = "@cf/meta/llama-3.1-8b-instruct-awq";
@@ -199,10 +243,11 @@ export default {
 				];
 
 				const result = await env.AI.run(model, { messages });
+				const answer = await extractAIResponse(result);
 
 				return json({
 					query: q,
-					answer: result.response.trim(),
+					answer: answer.trim(),
 					used_posts: top.map((p) => ({
 						id: p.id,
 						subject: p.subject,
