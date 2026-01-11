@@ -1,5 +1,3 @@
-// src/index.ts
-
 interface PiazzaPost {
 	id: string;
 	subject: string;
@@ -19,9 +17,6 @@ interface Env {
 	AI: Ai;                   // Workers AI binding
   }
   
-
-// --- Helpers ---
-
 function stripHtml(html: string = ""): string {
 	return html
 		.replace(/<br\s*\/?>/gi, "\n")
@@ -42,8 +37,6 @@ function tokenize(s: string): string[] {
 		.split(/\s+/)
 		.filter(Boolean);
 }
-
-// --- Scoring (now reply-aware) ---
 
 function score(post: PiazzaPost, q: string): number {
 	// Combine subject + body
@@ -90,9 +83,8 @@ function score(post: PiazzaPost, q: string): number {
 	return matches;
 }
 
-
-// --- Pick top-k posts ---
-
+// there's an issue with this function. How are we picking the top posts? 
+// we should just do some simple matching
 function pickTop(posts: PiazzaPost[], q: string, k = 10): PiazzaPost[] {
 	return posts
 		.map((p) => ({ p, s: score(p, q) }))
@@ -102,30 +94,25 @@ function pickTop(posts: PiazzaPost[], q: string, k = 10): PiazzaPost[] {
 		.map((x) => x.p);
 }
 
-// --- Fetch all posts from KV ---
-
 async function getAll(env: Env): Promise<PiazzaPost[]> {
 	const raw = await env.piazza_data.get("piazza_data");
 	if (!raw) throw new Error("No data found in KV (key: piazza_data)");
 	return JSON.parse(raw) as PiazzaPost[];
 }
 
-// --- Main Worker ---
-
+// main worker
 export default {
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
 		const path = url.pathname.replace(/\/+$/, "");
 
 		try {
-			// --- HTML FRONT-END PAGE ---
 			if (path === "" || path === "/") {
 				return new Response(frontendHtml(), {
 					headers: { "Content-Type": "text/html; charset=utf-8" },
 				});
 			}
 
-			// --- /ask endpoint ---
 			if (path === "/ask") {
 				const q = url.searchParams.get("q") || "";
 				if (!q)
@@ -179,7 +166,7 @@ export default {
 					  
 
 				const systemPrompt = [
-					"You are a helpful TA Assistant for CSC209/CSC369/CSC373.",
+					"You are a helpful TA Assistant for CSC369",
 					"Answer the student's question strictly from the provided Piazza context.",
 					"If the context is insufficient, say so briefly and suggest what to search next.",
 					"Prefer concise, actionable answers with bullet points and cite post ids like (see id: XXXXX).",
@@ -220,7 +207,6 @@ export default {
 	},
 } satisfies ExportedHandler<Env>;
 
-// --- Utility: JSON helper ---
 function json(data: any, status = 200) {
 	return new Response(JSON.stringify(data, null, 2), {
 		status,
@@ -231,7 +217,6 @@ function json(data: any, status = 200) {
 	});
 }
 
-// --- HTML Frontend ---
 function frontendHtml(): string {
 	return `
   <!DOCTYPE html>
